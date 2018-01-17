@@ -20,7 +20,7 @@ Welcome to python-bigone v0.0.1
 .. image:: https://img.shields.io/pypi/pyversions/python-bigone.svg
     :target: https://pypi.python.org/pypi/python-bigone
 
-This is an unofficial Python wrapper for the `BigONE exchanges REST API v1 <https://developer.big.one/>`_. I am in no way affiliated with Big.One, use at your own risk.
+This is an unofficial Python wrapper for the `BigONE exchanges REST API v1 <https://developer.big.one/>`_. I am in no way affiliated with BigONE, use at your own risk.
 
 PyPi
   https://pypi.python.org/pypi/python-bigone
