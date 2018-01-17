@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
     name='python-bigone',
     version='0.0.01',
-    packages=['bigon'],
+    packages=['bigone'],
     description='Big.One REST API python implementation',
     url='https://github.com/sammchardy/python-bigone',
     author='Sam McHardy',
