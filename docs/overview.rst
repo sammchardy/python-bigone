@@ -12,10 +12,10 @@ Install with ``pip``:
     pip install python-bigone
 
 
-Register on Big.One
--------------------
+Register on BigONE
+------------------
 
-Firstly register an account with `Big.One <https://big.one>`_.
+Firstly register an account with `BigONE <https://big.one>`_.
 
 Generate an API Key
 -------------------

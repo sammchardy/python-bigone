@@ -1,4 +1,4 @@
-.. python-kucoin documentation master file
+.. python-bigone documentation master file
 
 .. include:: ../README.rst
 

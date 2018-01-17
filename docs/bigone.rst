@@ -1,5 +1,5 @@
-Big.One API
-===========
+BigONE API
+==========
 
 client module
 ----------------------

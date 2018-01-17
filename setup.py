@@ -5,7 +5,7 @@ setup(
     name='python-bigone',
     version='0.0.01',
     packages=['bigone'],
-    description='Big.One REST API python implementation',
+    description='BigONE REST API python implementation',
     url='https://github.com/sammchardy/python-bigone',
     author='Sam McHardy',
     license='MIT',
