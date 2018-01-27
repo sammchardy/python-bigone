@@ -57,7 +57,7 @@ class Client(object):
             kwargs['params'] = kwargs['json']
             del(kwargs['json'])
 
-        if 'data' in kwargs['data']:
+        if 'data' in kwargs:
             del(kwargs['data'])
 
         response = getattr(self.session, method)(uri, **kwargs)
