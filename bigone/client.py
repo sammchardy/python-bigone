@@ -491,7 +491,7 @@ class Client(object):
         if limit:
             data['limit'] = limit
 
-        return self._get('order', True, data=data)
+        return self._get('orders', True, data=data)
 
     def get_order(self, order_id):
         """Get an order
