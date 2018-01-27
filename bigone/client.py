@@ -49,12 +49,15 @@ class Client(object):
 
     def _request(self, method, path, signed, **kwargs):
 
-        kwargs['data'] = kwargs.get('data', {})
+        kwargs['json'] = kwargs.get('data', {})
 
         uri = self._create_uri(path)
 
-        if kwargs['data'] and method == 'get':
-            kwargs['params'] = kwargs['data']
+        if kwargs['json'] and method == 'get':
+            kwargs['params'] = kwargs['json']
+            del(kwargs['json'])
+
+        if 'data' in kwargs['data']:
             del(kwargs['data'])
 
         response = getattr(self.session, method)(uri, **kwargs)
