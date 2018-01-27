@@ -491,7 +491,7 @@ class Client(object):
         if limit:
             data['limit'] = limit
 
-        return self._get('order', True, data=data)
+        return self._get('orders', True, data=data)
 
     def get_order(self, order_id):
         """Get an order
@@ -582,7 +582,7 @@ class Client(object):
 
         .. code:: python
 
-            orders = client.get_orders('ETH-BTC')
+            trades = client.get_trades('ETH-BTC')
 
         :return: dict
 
