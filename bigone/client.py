@@ -49,15 +49,16 @@ class Client(object):
 
     def _request(self, method, path, signed, **kwargs):
 
-        kwargs['json'] = kwargs.get('data', {})
+        data = kwargs.get('data', None)
 
         uri = self._create_uri(path)
 
-        if kwargs['json'] and method == 'get':
-            kwargs['params'] = kwargs['json']
-            del(kwargs['json'])
+        if method == 'get' and data:
+            kwargs['params'] = kwargs['data']
+            del(kwargs['data'])
 
-        if 'data' in kwargs:
+        if method == 'post' and data:
+            kwargs['json'] = kwargs['data']
             del(kwargs['data'])
 
         response = getattr(self.session, method)(uri, **kwargs)
@@ -552,12 +553,18 @@ class Client(object):
 
         return self._delete('orders/{}'.format(order_id), True)
 
-    def cancel_all_orders(self):
+    def cancel_orders(self, order_ids):
         """Cancel all orders
+
+        :param order_ids: List of order ids
+        :type order_ids: list
 
         .. code:: python
 
-            res = client.call_all_orders()
+            res = client.cancel_orders([
+                "f1d90216-0be5-4258-99a9-6d354815608e",
+                "57ae31c2-bcb1-4744-a2aa-6a3f72430699"
+            ])
 
         :return: dict
 
@@ -569,7 +576,11 @@ class Client(object):
 
         """
 
-        return self._post('orders/cancel', True)
+        data = [
+            {'order_id': oid} for oid in order_ids
+        ]
+
+        return self._post('orders/cancel', True, data=data)
 
     # Trade endpoints
 
