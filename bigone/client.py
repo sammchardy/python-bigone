@@ -582,7 +582,7 @@ class Client(object):
 
         .. code:: python
 
-            orders = client.get_orders('ETH-BTC')
+            trades = client.get_trades('ETH-BTC')
 
         :return: dict
 
