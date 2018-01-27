@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='python-bigone',
-    version='0.0.2',
+    version='0.0.3',
     packages=['bigone'],
     description='BigONE REST API python implementation',
     url='https://github.com/sammchardy/python-bigone',

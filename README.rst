@@ -1,5 +1,5 @@
 ===============================
-Welcome to python-bigone v0.0.2
+Welcome to python-bigone v0.0.3
 ===============================
 
 .. image:: https://img.shields.io/pypi/v/python-bigone.svg

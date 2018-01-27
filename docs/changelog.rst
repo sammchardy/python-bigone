@@ -1,10 +1,15 @@
 Changelog
 =========
 
-v0.0.2 - 2018-01-28
+v0.0.3 - 2018-01-28
 ^^^^^^^^^^^^^^^^^^^
 
-Websocket release
+**Fixed**
+
+- private POST call param format
+
+v0.0.2 - 2018-01-28
+^^^^^^^^^^^^^^^^^^^
 
 **Fixed**
 
