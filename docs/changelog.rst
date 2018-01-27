@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v0.0.5 - 2018-01-28
+^^^^^^^^^^^^^^^^^^^
+
+**Changed**
+
+- changed `cancel_all_orders` to `cancel_orders` requiring a list of order ids
+
 v0.0.4 - 2018-01-28
 ^^^^^^^^^^^^^^^^^^^
 
