@@ -10,7 +10,7 @@ setup(
     author='Sam McHardy',
     license='MIT',
     author_email='',
-    install_requires=['requests'],
+    install_requires=['requests', 'pyJWT'],
     keywords='bigone exchange rest api bitcoin btc eos qtum bitcny',
     classifiers=[
           'Intended Audience :: Developers',
