@@ -8,6 +8,7 @@ python:
   - "3.6"
 
 install:
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.3 ]]; then pip install virtualenv==15.2.0; fi
   - pip install -r test-requirements.txt
   - pip install -r requirements.txt
   - pip install tox-travis
