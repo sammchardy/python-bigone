@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='python-bigone',
-    version='0.1.1',
+    version='0.1.0',
     packages=['bigone'],
     description='BigONE REST API python implementation',
     url='https://github.com/sammchardy/python-bigone',
@@ -19,7 +19,6 @@ setup(
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
           'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: 3.3',
           'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
