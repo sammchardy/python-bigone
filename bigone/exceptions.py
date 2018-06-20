@@ -23,7 +23,10 @@ class BigoneAPIException(Exception):
                 self.message = json_res['msg']
                 self.code = json_res['code']
             elif 'errors' in json_res:
-                self.message = "\n ".join(["{}: {}".format(el['code'], el['message']) for el in json_res['errors']])
+                if type(json_res['errors']) == list:
+                    self.message = "\n ".join(["{}: {}".format(el['code'], el['message']) for el in json_res['errors']])
+                elif 'detail' in json_res['errors']:
+                    self.message = json_res['errors']['detail']
 
         self.status_code = response.status_code
         self.response = response
