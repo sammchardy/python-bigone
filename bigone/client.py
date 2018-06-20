@@ -163,7 +163,7 @@ class Client(object):
 
         """
 
-        return self._get('accounts', True)
+        return self._get('viewer/accounts', True)
 
     def get_account(self, currency):
         """Get account for a currency
