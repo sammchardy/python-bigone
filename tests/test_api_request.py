@@ -6,7 +6,7 @@ import pytest
 import requests_mock
 
 
-client = Client('api_key')
+client = Client('api_key', 'api_secret')
 
 
 def test_invalid_json():
@@ -14,7 +14,7 @@ def test_invalid_json():
 
     with pytest.raises(BigoneRequestException):
         with requests_mock.mock() as m:
-            m.get('https://api.big.one/markets', text='<head></html>')
+            m.get('https://big.one/api/v2/markets', text='<head></html>')
             client.get_markets()
 
 
@@ -24,11 +24,10 @@ def test_api_exception():
     with pytest.raises(BigoneAPIException):
         with requests_mock.mock() as m:
             json_obj = {
-                'error': {
-                    'status': 422,
+                'errors': [{
                     'code': 20102,
-                    'description': 'Unsupported currency ABC'
-                }
+                    'message': 'Unsupported currency ABC'
+                }]
             }
-            m.get('https://api.big.one/accounts/ABC', json=json_obj, status_code=422)
+            m.get('https://big.one/api/v2/accounts/ABC', json=json_obj, status_code=422)
             client.get_account('ABC')

@@ -1,55 +1,69 @@
 # coding=utf-8
 
+import jwt
 import requests
+import time
 
-from uuid import uuid4
 from .exceptions import BigoneAPIException, BigoneRequestException
 
 
 class Client(object):
 
-    API_URL = 'https://api.big.one'
+    API_URL = 'https://big.one/api/v2'
 
     SIDE_BID = 'BID'
     SIDE_ASK = 'ASK'
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, api_secret):
         """Big.One API Client constructor
 
-        https://developer.big.one/
+        https://open.big.one/
 
-        :param api_key: Api Token Id
+        :param api_key: Api Key
+        :type api_key: str
+        :param api_key: Api Secret
         :type api_key: str
 
         .. code:: python
 
-            client = Client(api_key)
+            client = Client(api_key, api_secret)
 
         """
 
         self.API_KEY = api_key
-        self.UUID = self._get_uuid()
+        self.API_SECRET = api_secret
         self.session = self._init_session()
-
-    def _get_uuid(self):
-        return str(uuid4())
 
     def _init_session(self):
 
         session = requests.session()
         headers = {'Accept': 'application/json',
-                   'User-Agent': 'python-bigone',
-                   'Authorization': 'Bearer {}'.format(self.API_KEY),
-                   'Big-Device-Id': self.UUID}
+                   'User-Agent': 'python-bigone'}
         session.headers.update(headers)
         return session
 
     def _create_uri(self, path):
         return '{}/{}'.format(self.API_URL, path)
 
+    def _create_signature(self, ):
+
+        headers = {'typ': 'JWT', 'alg': 'HS256'}
+        payload = {
+            'type': 'OpenAPI',
+            'sub': self.API_KEY,
+            'nonce': int(time.time() * 1000000000)  # convert to nanoseconds
+        }
+        sig = jwt.encode(payload, self.API_SECRET, algorithm='HS256', headers=headers)
+        return sig.decode("utf-8")
+
     def _request(self, method, path, signed, **kwargs):
 
         data = kwargs.get('data', None)
+
+        if signed:
+            kwargs['headers'] = {
+                'Authorization': 'Bearer {}'.format(self._create_signature())
+            }
 
         uri = self._create_uri(path)
 
@@ -75,7 +89,7 @@ class Client(object):
         try:
             json = response.json()
 
-            if 'success' in json and not json['success']:
+            if 'msg' in json or 'errors' in json:
                 raise BigoneAPIException(response)
 
             # by default return full response
@@ -85,7 +99,7 @@ class Client(object):
                 res = json['data']
             return res
         except ValueError:
-            raise BigoneRequestException('Invalid Response: %s' % response.text)
+            raise BigoneRequestException('Invalid Response: {}'.format(response.text))
 
     def _get(self, path, signed=False, **kwargs):
         return self._request('get', path, signed, **kwargs)
@@ -145,11 +159,11 @@ class Client(object):
                 }
             ]
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._get('accounts', True)
+        return self._get('viewer/accounts', True)
 
     def get_account(self, currency):
         """Get account for a currency
@@ -188,7 +202,7 @@ class Client(object):
                 "recipients": []
             }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
@@ -198,6 +212,8 @@ class Client(object):
 
     def get_markets(self):
         """List markets
+
+        https://open.big.one/docs/api_market.html#all-markets
 
         .. code:: python
 
@@ -209,147 +225,113 @@ class Client(object):
 
             [
                 {
-                    "type": "market",
-                    "symbol": "EKT-BTC",
-                    "base": "BTC",
-                    "quote": "EKT",
-                    "base_min": "0.00000001",
-                    "base_max": "1000000",
-                    "quote_increment": "1",
-                    "total_min": "0.001",
-                    "base_name": "Bitcoin",
-                    "quote_name": "EDUCare",
-                    "ticker": {
-                        "price": "0.00000830",
-                        "low": "0.00000533",
-                        "high": "0.00000997",
-                        "open": "0.00000899",
-                        "close": "0.00000830",
-                        "volume": "678344.00000000"
+                    "uuid": "d2185614-50c3-4588-b146-b8afe7534da6",
+                    "quoteScale": 8,
+                    "quoteAsset": {
+                        "uuid": "0df9c3c3-255a-46d7-ab82-dedae169fba9",
+                        "symbol": "BTC",
+                        "name": "Bitcoin"
                     },
-                    "metrics": {
-                        "0000060": [
-                            [
-                                1516150800000,
-                                "0.00000641",
-                                "0.00000641",
-                                "0.00000641",
-                                "0.00000641",
-                                "6593.00000000"
-                            ],
-                            [
-                                1516147200000,
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000000"
-                            ],
-                            [
-                                1516143600000,
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000840",
-                                "0.00000000"
-                            ],
-                        ]
-                    },
-                    "trades": [],
-                    "asks": [],
-                    "bids": [],
-                    "depth": {
-                        "type": "depth",
-                        "asks": [],
-                        "bids": []
-                    },
-                    "accounts": []
+                    "name": "BTG/BTC",
+                    "baseScale": 4,
+                    "baseAsset": {
+                        "uuid": "5df3b155-80f5-4f5a-87f6-a92950f0d0ff",
+                        "symbol": "BTG",
+                        "name": "Bitcoin Gold"
+                    }
                 }
             ]
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._get('markets', True)
+        return self._get('markets')
 
-    def get_market(self, symbol):
+    def get_tickers(self):
+        """List market tickers
+
+        https://open.big.one/docs/api_tickers.html#tickers-of-all-market
+
+        .. code:: python
+
+            markets = client.get_tickers()
+
+        :return: list of dicts
+
+        .. code:: python
+
+            [
+                {
+                    "volume": null,
+                    "open": "1.0000000000000000",
+                    "market_uuid": "ETH-EOS",
+                    "low": null,
+                    "high": null,
+                    "daily_change_perc": "0",
+                    "daily_change": "0E-16",
+                    "close": "1.0000000000000000",
+                    "bid": {
+                        "price": "1.0000000000000000",
+                        "amount": "106.0000000000000000"
+                    },
+                    "ask": {
+                        "price": "45.0000000000000000",
+                        "amount": "4082.3283464000000000"
+                    }
+                }
+            ]
+
+        :raises:  BigoneRequestException, BigoneAPIException
+
+        """
+
+        return self._get('tickers')
+
+    def get_ticker(self, symbol):
         """Get symbol market details
+
+        https://open.big.one/docs/api_tickers.html#ticker-of-one-market
 
         :param symbol: Name of symbol
         :type symbol: str
 
         .. code:: python
 
-            market = client.get_market('ETH-BTC')
+            # using market ID
+            market = client.get_ticker('ETH-BTC')
+
+            # using market UUID
+            market = client.get_ticker('d2185614-50c3-4588-b146-b8afe7534da6')
 
         :return: dict
 
         .. code:: python
 
             {
-                "type": "market",
-                "symbol": "EKT-BTC",
-                "base": "BTC",
-                "quote": "EKT",
-                "base_min": "0.00000001",
-                "base_max": "1000000",
-                "quote_increment": "1",
-                "total_min": "0.001",
-                "base_name": "Bitcoin",
-                "quote_name": "EDUCare",
-                "ticker": {
-                    "price": "0.00000830",
-                    "low": "0.00000533",
-                    "high": "0.00000997",
-                    "open": "0.00000899",
-                    "close": "0.00000830",
-                    "volume": "678344.00000000"
+                "volume": null,
+                "open": "42.0000000000000000",
+                "market_uuid": "BTC-EOS",
+                "low": "42.0000000000000000",
+                "high": null,
+                "daily_change_perc": "0",
+                "daily_change": "0E-16",
+                "close": "42.0000000000000000",
+                "bid": {
+                    "price": "42.0000000000000000",
+                    "amount": "3.3336371100000000"
                 },
-                "metrics": {
-                    "0000060": [
-                        [
-                            1516150800000,
-                            "0.00000641",
-                            "0.00000641",
-                            "0.00000641",
-                            "0.00000641",
-                            "6593.00000000"
-                        ],
-                        [
-                            1516147200000,
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000000"
-                        ],
-                        [
-                            1516143600000,
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000840",
-                            "0.00000000"
-                        ],
-                    ]
-                },
-                "trades": [],
-                "asks": [],
-                "bids": [],
-                "depth": {
-                    "type": "depth",
-                    "asks": [],
-                    "bids": []
-                },
-                "accounts": []
+                "ask": {
+                    "price": "45.0000000000000000",
+                    "amount": "4082.3283464000000000"
+                }
             }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._get('markets/{}'.format(symbol), True)
+        return self._get('markets/{}/ticker'.format(symbol))
 
     def get_order_book(self, symbol):
         """Get symbol market details
@@ -359,76 +341,105 @@ class Client(object):
 
         .. code:: python
 
+            # Using market ID
             book = client.get_order_book('ETH-BTC')
+
+            # Using market UUID
+            book = client.get_order_book('d2185614-50c3-4588-b146-b8afe7534da6')
 
         :return: dict
 
         .. code:: python
 
             {
-                "type": "orderbook",
-                "asks": [
-                    {
-                        "type": "order",
-                        "price": "0.06400000",
-                        "amount": "0.49499990"
-                    },
-                    {
-                        "type": "order",
-                        "price": "0.06500000",
-                        "amount": "0.09460000"
-                    }
-                ],
+                "market_uuid": "BTC-EOS",
                 "bids": [
                     {
-                        "type": "order",
-                        "price": "0.01000000",
-                        "amount": "1.00000000"
-                    },
+                        "price": "42",
+                        "order_count": 4,
+                        "amount": "23.33363711"
+                    }
+                ],
+                "asks": [
                     {
-                        "type": "order",
-                        "price": "0.00100000",
-                        "amount": "1.00000000"
+                        "price": "45",
+                        "order_count": 2,
+                        "amount": "4193.3283464"
                     }
                 ]
             }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._get('markets/{}/book'.format(symbol), True)
+        return self._get('markets/{}/depth'.format(symbol))
 
-    def get_market_trades(self, symbol):
-        """Get symbol market details
+    def get_market_trades(self, symbol, after=None, before=None, first=None, last=None):
+        """Get market trades - max 50
+
+        https://open.big.one/docs/api_market_trade.html#trades-of-a-market
 
         :param symbol: Name of symbol
         :type symbol: str
+        :param after: Return trades after this id
+        :type after: int
+        :param before: Return trades before this id
+        :type before: int
+        :param first: Slicing count
+        :type first: int
+        :param last: Slicing count
+        :type last: int
 
         .. code:: python
 
             trades = client.get_market_trades('ETH-BTC')
 
+            # using after trade ID
+            trades = client.get_market_trades('ETH-BTC', after=1)
+
+            # using first slice value
+            trades = client.get_market_trades('ETH-BTC', first=20)
+
         :return: list of dicts
 
         .. code:: python
 
-            [
-                {
-                  "type": "trade",
-                  "trade_id": "fbf447d3-e32f-4458-81ec-de6c73fbc2fb",
-                  "trade_side": "BID",
-                  "price": "0.06500000",
-                  "amount": "0.00000010",
-                  "created_at": "2017-10-13T11:42:21.807332899Z"
+            {
+                "edges": [
+                    {
+                        "node": {
+                            "taker_side": "BID",
+                            "price": "46.1450000000000000",
+                            "market_uuid": "BTC-EOS",
+                            "id": 1,
+                            "amount": "0.2465480000000000"
+                        },
+                        "cursor": "dGVzdGN1cmVzZQo="
+                    }
+                ],
+                "page_info": {
+                "end_cursor": "dGVzdGN1cmVzZQo=",
+                "start_cursor": "dGVzdGN1cmVzZQo=",
+                "has_next_page": true,
+                "has_previous_page": false
                 }
-            ]
+            }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
+        data = {}
+        if after:
+            data['after'] = after
+        if before:
+            data['before'] = before
+        if first:
+            data['first'] = first
+        if last:
+            data['last'] = last
 
-        return self._get('markets/{}/trades'.format(symbol), True)
+        return self._get('markets/{}/trades'.format(symbol), data=data)
 
     # Order Endpoints
 
@@ -452,28 +463,47 @@ class Client(object):
 
         .. code:: python
 
-            {}
+            {
+                "id": 10,
+                "market_uuid": "BTC-EOS",
+                "price": "10.00",
+                "amount": "10.00",
+                "filled_amount": "9.0",
+                "avg_deal_price": "12.0",
+                "side": "ASK",
+                "state": "FILLED"
+            }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
         data = {
-            'order_market': symbol,
-            'order_side': side,
+            'market_id': symbol,
+            'side': side,
             'price': price,
             'amount': amount
         }
 
-        return self._post('orders', True, data=data)
+        return self._post('viewer/orders', True, data=data)
 
-    def get_orders(self, symbol, limit=None):
+    def get_orders(self, symbol, after=None, before=None, first=None, last=None, side=None, state=None):
         """Get a list of orders
 
         :param symbol: Name of symbol
         :type symbol: str
-        :param limit:  side of order (BID or ASK)
-        :type limit: str
+        :param after: Return trades after this id
+        :type after: int
+        :param before: Return trades before this id
+        :type before: int
+        :param first: Slicing count
+        :type first: int
+        :param last: Slicing count
+        :type last: int
+        :param side: Order Side ASK|BID
+        :type side: str
+        :param state: Order State CANCELED|FILLED|PENDING
+        :type state: str
 
         .. code:: python
 
@@ -483,63 +513,96 @@ class Client(object):
 
         .. code:: python
 
-            {}
+            {
+                "edges": [
+                    {
+                        "node": {
+                            "id": 10,
+                            "market_uuid": "d2185614-50c3-4588-b146-b8afe7534da6",
+                            "price": "10.00",
+                            "amount": "10.00",
+                            "filled_amount": "9.0",
+                            "avg_deal_price": "12.0",
+                            "side": "ASK",
+                            "state": "FILLED"
+                        },
+                        "cursor": "dGVzdGN1cmVzZQo="
+                    }
+                ],
+                "page_info": {
+                    "end_cursor": "dGVzdGN1cmVzZQo=",
+                    "start_cursor": "dGVzdGN1cmVzZQo=",
+                    "has_next_page": true,
+                    "has_previous_page": false
+                }
+            }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
         data = {
-            'market': symbol
+            'market_id': symbol
         }
-        if limit:
-            data['limit'] = limit
+        if after:
+            data['after'] = after
+        if before:
+            data['before'] = before
+        if first:
+            data['first'] = first
+        if last:
+            data['last'] = last
+        if side:
+            data['side'] = side
+        if state:
+            data['state'] = state
 
-        return self._get('orders', True, data=data)
+        return self._get('viewer/orders', True, data=data)
 
     def get_order(self, order_id):
         """Get an order
+
+        https://open.big.one/docs/api_orders.html#get-one-order
 
         :param order_id: Id of order
         :type order_id: str
 
         .. code:: python
 
-            orders = client.get_order('349b159b-17c5-4f01-8731-f4697a8b439a')
+            orders = client.get_order('10')
 
         :return: dict
 
         .. code:: python
 
             {
-                "type": "order",
-                "user_id": "300975cd-4534-49c6-b5cf-921bf4664109",
-                "order_id": "1f0b4f9c-ad78-454f-a629-c3a9704f0c83",
-                "order_market": "ETH-BTC",
-                "order_type": "LIMIT",
-                "order_side": "ASK",
-                "order_state": "filled",
-                "price": "0.001",
-                "amount": "1",
-                "filled_amount": "0",
-                "created_at": "2017-10-15T05:59:02.045166806Z"
+                "id": 10,
+                "market_uuid": "d2185614-50c3-4588-b146-b8afe7534da6",
+                "price": "10.00",
+                "amount": "10.00",
+                "filled_amount": "9.0",
+                "avg_deal_price": "12.0",
+                "side": "ASK",
+                "state": "FILLED"
             }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._get('orders/{}'.format(order_id), True)
+        return self._get('viewer/orders/{}'.format(order_id), True)
 
     def cancel_order(self, order_id):
         """Cancel an order
+
+        https://open.big.one/docs/api_orders.html#cancle-order
 
         :param order_id: Id of order
         :type order_id: str
 
         .. code:: python
 
-            res = client.cancel_order('349b159b-17c5-4f01-8731-f4697a8b439a')
+            res = client.cancel_order('10')
 
         :return: dict
 
@@ -547,24 +610,21 @@ class Client(object):
 
             {}
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        return self._delete('orders/{}'.format(order_id), True)
+        return self._post('viewer/orders/{}/cancel'.format(order_id), True)
 
-    def cancel_orders(self, order_ids):
+    def cancel_orders(self):
         """Cancel all orders
 
-        :param order_ids: List of order ids
-        :type order_ids: list
+        https://open.big.one/docs/api_orders.html#cancle-all-orders
+
 
         .. code:: python
 
-            res = client.cancel_orders([
-                "f1d90216-0be5-4258-99a9-6d354815608e",
-                "57ae31c2-bcb1-4744-a2aa-6a3f72430699"
-            ])
+            res = client.cancel_orders()
 
         :return: dict
 
@@ -572,27 +632,26 @@ class Client(object):
 
             {}
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        data = [
-            {'order_id': oid} for oid in order_ids
-        ]
-
-        return self._post('orders/cancel', True, data=data)
+        return self._post('viewer/orders/cancel_all', True)
 
     # Trade endpoints
 
-    def get_trades(self, symbol, limit=None, offset=None):
-        """Get a list of orders
+    def get_trades(self, symbol=None, after=None, before=None, first=None, last=None):
+        """Get a list of your trades
 
         :param symbol: Name of symbol
         :type symbol: str
-        :param limit: limit of trades
-        :type limit: str
-        :param offset:  side of order (BID or ASK)
-        :type offset: str
+        :type after: int
+        :param before: Return trades before this id
+        :type before: int
+        :param first: Slicing count
+        :type first: int
+        :param last: Slicing count
+        :type last: int
 
         .. code:: python
 
@@ -602,131 +661,116 @@ class Client(object):
 
         .. code:: python
 
-            {}
+            {
+                "edges": [
+                    {
+                        "node": {
+                            "viewer_side": "ASK" // ASK, BID, SELF_TRADING
+                            "taker_side": "BID",
+                            "price": "46.1450000000000000",
+                            "market_uuid": "BTC-EOS",
+                            "id": 1,
+                            "amount": "0.2465480000000000"
+                        },
+                        "cursor": "dGVzdGN1cmVzZQo="
+                    }
+                ],
+                "page_info": {
+                    "end_cursor": "dGVzdGN1cmVzZQo=",
+                    "start_cursor": "dGVzdGN1cmVzZQo=",
+                    "has_next_page": true,
+                    "has_previous_page": false
+                }
+            }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
-        data = {
-            'market': symbol
-        }
-        if limit:
-            data['limit'] = limit
-        if offset:
-            data['offset'] = offset
+        data = {}
+        if symbol:
+            data['market_id'] = symbol
+        if after:
+            data['after'] = after
+        if before:
+            data['before'] = before
+        if first:
+            data['first'] = first
+        if last:
+            data['last'] = last
 
-        return self._get('trades', True, data=data)
+        return self._get('viewer/trades', True, data=data)
 
     # Withdraw endpoints
 
-    def withdraw(self, address, currency, amount, fee, currency_pin, label=None):
-        """Request a withdrawal
+    def withdrawals(self, first=None, after=None):
+        """Get a list of withdrawals
 
-        :param address: Address string e.g '1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX'
-        :type address: str
-        :param currency: Currency to withdraw e.g 'BTC'
-        :type address: str
-        :param amount: Amount of currency to send
-        :type amount: str
-        :param fee: Fee to pay? e.g 0.002
-        :type amount: str
-        :param currency_pin: Pin for the currency
-        :type currency_pin: str
-        :param label: optional - note about the withdrawal
-        :type label: str
+        https://open.big.one/docs/api_withdrawal.html#get-withdrawals-of-user
+
+        :param first: Slicing count
+        :type first: str
+        :param after: Return withdrawals after this value
+        :type after: str
 
         .. code:: python
 
-            withdrawal = client.withdraw(
-                '1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX',
-                'BTC',
-                '0.590464',
-                '0.002',
-                'your currency pin',
-                'some label notes'
-            )
+            withdrawal = client.withdrawals()
 
         :return: dict
 
         .. code:: python
 
-            {}
-
-        :raises:  BigoneResponseException, BigoneAPIException
-
-        """
-
-        data = {
-            'address': address,
-            'withdrawal_type': currency,
-            'asset_pin': currency_pin,
-            'amount': amount,
-            'fee': fee,
-            'label': label
-        }
-
-        return self._post('withdrawals', True, data=data)
-
-    def get_withdrawals(self, currency=None, limit=None, offset=None):
-        """Get a list of withdrawals
-
-        :param currency: optional - Name of currency
-        :type currency: str
-        :param limit: limit of withdrawals
-        :type limit: str
-        :param offset:  side of order (BID or ASK)
-        :type offset: str
-
-        .. code:: python
-
-            withdrawals = client.get_withdrawals('BTC')
-
-        :return: list of dicts
-
-        .. code:: python
-
-            [
-                {
-                    "type": "withdrawal",
-                    "withdrawal_id": "1170968f-c5a0-4c72-b919-02f2f4b5f2c3",
-                    "withdrawal_type": "BTC",
-                    "address": "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX",
-                    "label": "some notes",
-                    "amount": "0.59046400",
-                    "state": "initial",
-                    "scanner_url": "https://blockchain.info/tx/",
-                    "created_at": "2017-11-07T10:31:32.911756961Z"
+            {
+                "edges": [
+                    {
+                        "node": {
+                            "id": 10,
+                            "customer_id": "ETH",
+                            "asset_uuid": "ETH",
+                            "amount": "5",
+                            "state": "CONFIRMED",
+                            "note": "2018-03-15T16:13:45.610463Z",
+                            "txid": "0x4643bb6b393ac20a6175c713175734a72517c63d6f73a3ca90a15356f2e967da0",
+                            "completed_at": "2018-03-15T16:13:45.610463Z",
+                            "inserted_at": "2018-03-15T16:13:45.610463Z",
+                            "is_internal": true,
+                            "target_address": "0x4643bb6b393ac20a6175c713175734a72517c63d6f7"
+                        },
+                        "cursor": "dGVzdGN1cmVzZQo="
+                    }
+                ],
+                "page_info": {
+                    "end_cursor": "dGVzdGN1cmVzZQo=",
+                    "start_cursor": "dGVzdGN1cmVzZQo=",
+                    "has_next_page": true,
+                    "has_previous_page": false
                 }
-            ]
+            }
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
         data = {}
-        if currency:
-            data['currency'] = currency
-        else:
-            data['currency'] = 'ALL'
-        if limit:
-            data['limit'] = limit
-        if offset:
-            data['offset'] = offset
+        if after:
+            data['after'] = after
+        if first:
+            data['first'] = first
 
-        return self._get('withdrawals', True, data=data)
+        return self._get('viewer/withdrawals', True, data=data)
 
     # Deposit endpoints
 
-    def get_deposits(self, currency=None, limit=None, offset=None):
+    def get_deposits(self, first=None, after=None):
         """Get a list of deposits
 
-        :param currency: optional - Name of currency
-        :type currency: str
-        :param limit: limit of withdrawals
-        :type limit: str
-        :param offset:  side of order (BID or ASK)
-        :type offset: str
+        https://open.big.one/docs/api_deposit.html#deposit-of-user
+
+        :param first: Slicing count
+        :type first: str
+        :param after: Return withdrawals after this value
+        :type after: str
 
         .. code:: python
 
@@ -753,18 +797,14 @@ class Client(object):
                 }
             ]
 
-        :raises:  BigoneResponseException, BigoneAPIException
+        :raises:  BigoneRequestException, BigoneAPIException
 
         """
 
         data = {}
-        if currency:
-            data['currency'] = currency
-        else:
-            data['currency'] = 'ALL'
-        if limit:
-            data['limit'] = limit
-        if offset:
-            data['offset'] = offset
+        if after:
+            data['after'] = after
+        if first:
+            data['first'] = first
 
-        return self._get('withdrawals', True, data=data)
+        return self._get('viewer/deposits', True, data=data)

@@ -16,14 +16,17 @@ class BigoneAPIException(Exception):
             json_res = response.json()
         except ValueError:
             print("Can't parse error response: {}".format(response.text))
-            self.message = response.content
+            self.message = response.text
         else:
             print("doing something with json_res: {}".format(json_res))
-            if 'error' in json_res:
-                if 'description' in json_res['error']:
-                    self.message = json_res['error']['description']
-                if 'code' in json_res['error']:
-                    self.code = json_res['error']['code']
+            if 'msg' in json_res:
+                self.message = json_res['msg']
+                self.code = json_res['code']
+            elif 'errors' in json_res:
+                if type(json_res['errors']) == list:
+                    self.message = "\n ".join(["{}: {}".format(el['code'], el['message']) for el in json_res['errors']])
+                elif 'detail' in json_res['errors']:
+                    self.message = json_res['errors']['detail']
 
         self.status_code = response.status_code
         self.response = response
